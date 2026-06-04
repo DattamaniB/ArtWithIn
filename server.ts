@@ -377,6 +377,87 @@ async function startServer() {
       saveDatabase();
     }
 
+    // Ensure Creator Kabir is fully updated/seeded in database
+    const kabirExists = users.some(u => u._id === "3");
+    if (!kabirExists) {
+      const seededKabir = {
+        _id: "3",
+        name: "Kabir Mehta",
+        email: "kabir@example.com",
+        password: bcrypt.hashSync("password123", 10),
+        role: "Photographer",
+        userType: "creator",
+        username: "@kabir_streetwear",
+        verified: true,
+        availabilityStatus: "Available for Work",
+        coverBanner: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80&w=1200",
+        profilePic: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=300",
+        bio: "Neon-lit fashion campaigns and editorial portraits — shooting the future of streetwear with analog soul.",
+        quote: "Photography is the story I fail to put into words. Finding soul in high-contrast urban shadows.",
+        aboutMe: "I am an editorial and street photographer based in Hyderabad. I specialize in late-night low-light analog photography, capturing neon glare and dark fashion silhouettes for contemporary streetwear brands.",
+        location: "Hyderabad, India",
+        followers: 2100,
+        following: [],
+        projects: 1,
+        projectsCompleted: 88,
+        likesReceived: 4950,
+        profileViews: 12450,
+        rate: "₹4,200/hr",
+        creatorTrustScore: 97,
+        creatorTier: "Grandmaster",
+        trustFactors: {
+          profileCompletion: 100,
+          portfolioQuality: 98,
+          responseRate: 95,
+          clientReviews: 97,
+          projectSuccessRate: 98
+        },
+        skillsTags: ["Streetwear", "Analog Film", "Low-Light", "Color Grading", "Portraits"],
+        skillCategories: {
+          primary: "Editorial Photography",
+          secondary: ["Neon portraiture", "Analog film emulation", "High-contrast urban layouts"]
+        },
+        primarySkill: "Lightroom Classic",
+        secondarySkills: ["Photoshop", "Capture One", "Indesign"],
+        softwareList: [
+          { name: "Lightroom Classic", level: "Master" },
+          { name: "Adobe Photoshop", level: "Master" },
+          { name: "Capture One", level: "Expert" }
+        ],
+        certifications: [
+          { name: "Certified Leica Artisan", issuer: "Leica Academy", date: "2024" }
+        ],
+        yearsOfExperience: 5,
+        freelanceExperience: "3 Years",
+        agencyExperience: "2 Years",
+        workHistory: [
+          { company: "Streetwear Syndicate", role: "Lead Photographer", duration: "2024 - Present", description: "Shot seasonal print lookbooks, catalog grids, and high-tempo vertical digital campaigns." }
+        ],
+        education: [
+          { school: "JNTU Fine Arts College", degree: "BFA in Photography", year: "2021" }
+        ],
+        achievements: ["National Street Photography Winner 2023"],
+        servicesOffered: [
+          { serviceName: "Streetwear Lookbook Shoot", description: "4-hour urban shoot, 20 high-contrast analog edits, fashion styling support.", startingPrice: "35000", deliveryTime: "6 Days", revisionCount: 3 }
+        ],
+        reviews: [],
+        collaborationHistory: [
+          { companyName: "PixelForge Studios", projectName: "Neon Streetwear Photoshoot", projectStatus: "Completed", reviewScore: 5, completionDate: "2026-05-20" }
+        ],
+        youtube: "youtube.com/c/kabirphoto",
+        discord: "kabir#9932",
+        instagram: "@kabir_mehta",
+        linkedin: "linkedin.com/in/kabirmehta",
+        website: "www.kabirphoto.com",
+        onboarded: true,
+        portfolio: [
+          { id: "p4", title: "Neon Tokyo", type: "Stills", url: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26" }
+        ]
+      };
+      users.push(seededKabir);
+      saveDatabase();
+    }
+
     // Ensure PixelForge Studios Recruiter is always seeded in database
     const recruiterExists = users.some(u => u._id === "recruiter-1");
     if (!recruiterExists) {
@@ -508,6 +589,7 @@ async function startServer() {
         email,
         password: hashedPassword,
         role: role || "Member",
+        userType: "creator",
         skills: [],
         bio: `Editorial talent specializing in ${role || "Member"}.`,
         quote: "True excellence is not a single dispatch, but the cumulative ledger of one's creative output.",
@@ -518,7 +600,24 @@ async function startServer() {
         profilePic: "",
         following: [],
         portfolio: [],
-        onboarded: false
+        onboarded: false,
+        skillsTags: [],
+        secondarySkills: [],
+        softwareList: [],
+        certifications: [],
+        workHistory: [],
+        education: [],
+        reviews: [],
+        opportunities: [],
+        portfolioShowcase: [],
+        collaborations: [],
+        hiringPreferences: {
+          preferredExperience: "Intermediate+",
+          projectType: "Freelance",
+          workMode: "Remote",
+          languages: ["English"],
+          availability: "Available for Work"
+        }
       };
       users.push(newUser);
 
@@ -985,7 +1084,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 

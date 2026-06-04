@@ -3560,12 +3560,14 @@ function MessagesPage({
   activeConvoId,
   setActiveConvoId,
   incomingMsg,
+  setIncomingMsg,
   currentUser,
   wrapApi,
 }: {
   activeConvoId: string;
   setActiveConvoId: (id: string) => void;
   incomingMsg: any;
+  setIncomingMsg: (m: any) => void;
   currentUser: User | null;
   wrapApi?: <T>(fn: () => Promise<T>) => Promise<T>;
 }) {
@@ -3599,6 +3601,7 @@ function MessagesPage({
             : c,
         ),
       );
+      setIncomingMsg(null);
     }
   }, [incomingMsg]);
 
@@ -3622,13 +3625,8 @@ function MessagesPage({
           : c,
       ),
     );
-    if (wrapApi) {
-      await wrapApi(() =>
-        api.sendMessage({ conversationId: activeConvoId, text: txt }),
-      );
-    } else {
-      await api.sendMessage({ conversationId: activeConvoId, text: txt });
-    }
+    // Bypassed wrapApi to prevent blocking loading overlay during active chat
+    await api.sendMessage({ conversationId: activeConvoId, text: txt });
   };
 
   return (
@@ -5004,6 +5002,37 @@ function RecruiterProfilePage({
                 ) : "Not Listed"}
               </div>
 
+              {/* Middle Column Creator Reviews Registry */}
+              <div style={{ border: `4px double ${C.ink}`, padding: 24, background: C.surface, display: "flex", flexDirection: "column", height: "100%" }}>
+                <div className="byline" style={{ color: C.accent, fontSize: 8, marginBottom: 12 }}>◆ PLATFORM CREATOR REVIEWS ({rec.reviews?.length || 0})</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", flex: 1, maxHeight: 280 }}>
+                  {rec.reviews && rec.reviews.length > 0 ? (
+                    rec.reviews.map((rev) => (
+                      <Card key={rev.id} style={{ padding: 12, background: C.paper }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
+                          <div>
+                            <div className="headline-sm" style={{ fontSize: 10, fontWeight: 700 }}>{rev.projectName.toUpperCase()}</div>
+                            <div className="byline" style={{ fontSize: 6.5, color: C.inkMid }}>BY {rev.creatorName.toUpperCase()}</div>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Star key={i} size={8} style={{ fill: i < rev.rating ? C.accent : "none", color: i < rev.rating ? C.accent : C.rule }} />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="body-copy" style={{ fontSize: 10, fontStyle: "italic", color: C.inkMid, lineHeight: 1.3, marginTop: 4 }}>
+                          "{rev.reviewText}"
+                        </p>
+                      </Card>
+                    ))
+                  ) : (
+                    <div className="italic-serif text-zinc-400 text-xs py-4 text-center">
+                      No creator reviews indexed.
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div style={{ border: `4px double ${C.ink}`, padding: 24, background: C.surface }}>
                 <div className="byline" style={{ fontSize: 6.5 }}>INSTAGRAM CORRESPONDENCE</div>
                 <div className="headline-sm" style={{ fontSize: 12, marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
@@ -5450,7 +5479,7 @@ function CreatorDossierLayout({
   };
 
   const handleShare = () => {
-    const link = `${window.location.origin}/#/profile/${profile._id}`;
+    const link = `https://artwithin.onrender.com/#/profile/${profile._id}`;
     navigator.clipboard.writeText(link).then(() => {
       setShowCopySuccess(true);
       setTimeout(() => setShowCopySuccess(false), 3000);
@@ -7676,6 +7705,14 @@ export default function App() {
       const data = JSON.parse(e.data);
       if (data.type === "message") setIncomingMsg(data);
     };
+    ws.onclose = () => {
+      setTimeout(() => {
+        setupWS(token);
+      }, 3000);
+    };
+    ws.onerror = () => {
+      ws.close();
+    };
   };
 
   const handleAuth = async (u: User, token: string) => {
@@ -7997,6 +8034,7 @@ export default function App() {
                 activeConvoId={activeConvoId}
                 setActiveConvoId={setActiveConvoId}
                 incomingMsg={incomingMsg}
+                setIncomingMsg={setIncomingMsg}
                 currentUser={user}
                 wrapApi={wrapApi}
               />
