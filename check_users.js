@@ -1,7 +1,7 @@
 import fs from 'fs';
 import bcrypt from 'bcryptjs';
 
-const DB_PATH = './db.json';
+const DB_PATH = process.env.DB_PATH || './db.json';
 
 function getDb() {
   if (!fs.existsSync(DB_PATH)) {

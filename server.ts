@@ -18,7 +18,7 @@ async function startServer() {
   const app = express();
   const server = createHttpServer(app);
   const wss = new WebSocketServer({ server });
-  const PORT = process.env.PORT || 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   // Track connected clients
   const clients = new Map<string, WebSocket>();
@@ -210,7 +210,7 @@ async function startServer() {
     { _id: "2", userId: "2", type: "like", icon: "❤️", title: "Aarav liked your portfolio post", detail: '"Cinematic reel — loved the color grade!"', time: "15m ago", read: false, actionable: false, responded: null },
   ];
 
-  const DB_PATH = path.join(__dirname, 'db.json');
+  const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'db.json');
 
   const loadDatabase = () => {
     if (fs.existsSync(DB_PATH)) {
@@ -580,23 +580,25 @@ async function startServer() {
   // Auth Routes
   app.post('/api/auth/register', async (req, res) => {
     try {
-      const { name, email, password, role } = req.body;
-      if (users.find(u => u.email === email)) return res.status(400).json({ error: 'Email already exists' });
+      const { name, email, password, role, userType } = req.body;
+      if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
+      const normalizedEmail = email.toLowerCase().trim();
+      if (users.find(u => u.email === normalizedEmail)) return res.status(400).json({ error: 'Email already exists' });
       const hashedPassword = await bcrypt.hash(password, 10);
       const newUser = {
         _id: String(Date.now()),
         name,
-        email,
+        email: normalizedEmail,
         password: hashedPassword,
-        role: role || "Member",
-        userType: "creator",
+        role: role || (userType === 'recruiter' ? 'Creative Agency' : 'Member'),
+        userType: userType || 'creator',
         skills: [],
-        bio: `Editorial talent specializing in ${role || "Member"}.`,
+        bio: userType === 'recruiter' ? 'Creative agency corporate dossier.' : `Editorial talent specializing in ${role || "Member"}.`,
         quote: "True excellence is not a single dispatch, but the cumulative ledger of one's creative output.",
         location: "Location redacted",
         followers: 0,
         projects: 0,
-        rate: "₹0",
+        rate: userType === 'recruiter' ? 'Commission-Based' : '₹0',
         profilePic: "",
         following: [],
         portfolio: [],
@@ -647,7 +649,9 @@ async function startServer() {
   app.post('/api/auth/login', async (req, res) => {
     try {
       const { email, password } = req.body;
-      const user = users.find(u => u.email === email);
+      if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
+      const normalizedEmail = email.toLowerCase().trim();
+      const user = users.find(u => u.email === normalizedEmail);
       if (!user) return res.status(401).json({ error: 'Invalid credentials' });
       const match = await bcrypt.compare(password, user.password);
       if (!match) return res.status(401).json({ error: 'Invalid credentials' });
@@ -915,7 +919,7 @@ async function startServer() {
       const otherId = convo.participants.find((p: string) => p !== req.user.id);
       const client = clients.get(otherId);
       if (client && client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify({ type: 'message', conversationId, msg }));
+        client.send(JSON.stringify({ type: 'message', conversationId, msg, senderName: req.user.name }));
       }
 
       // Add notification for other user

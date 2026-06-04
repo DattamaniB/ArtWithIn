@@ -719,7 +719,27 @@ const Ink = ({
   style?: React.CSSProperties;
 }) => {
   const bg = color || C.ink;
-  if (src)
+  if (src) {
+    const isVideo = src.startsWith("data:video/") || src.endsWith(".mp4") || src.endsWith(".webm");
+    if (isVideo) {
+      return (
+        <video
+          src={src}
+          autoPlay
+          muted
+          loop
+          playsInline
+          style={{
+            width: size,
+            height: size,
+            border: `1px solid ${C.ink}`,
+            objectFit: "cover",
+            flexShrink: 0,
+            ...style,
+          }}
+        />
+      );
+    }
     return (
       <img
         src={src}
@@ -734,6 +754,7 @@ const Ink = ({
         referrerPolicy="no-referrer"
       />
     );
+  }
   return (
     <div
       style={{
@@ -1366,9 +1387,15 @@ const OnboardingTour = ({
   const onPortFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size exceeds 10MB limit. Please upload a smaller file.");
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setNewPortUrl(ev.target?.result as string);
+    reader.onload = async (ev) => {
+      const url = ev.target?.result as string;
+      const compressed = file.type.startsWith("image/") ? await compressImage(url) : url;
+      setNewPortUrl(compressed);
     };
     reader.readAsDataURL(file);
   };
@@ -1376,9 +1403,15 @@ const OnboardingTour = ({
   const onLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size exceeds 10MB limit. Please upload a smaller file.");
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setCompanyLogo(ev.target?.result as string);
+    reader.onload = async (ev) => {
+      const url = ev.target?.result as string;
+      const compressed = file.type.startsWith("image/") ? await compressImage(url) : url;
+      setCompanyLogo(compressed);
     };
     reader.readAsDataURL(file);
   };
@@ -1386,9 +1419,15 @@ const OnboardingTour = ({
   const onBannerFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size exceeds 10MB limit. Please upload a smaller file.");
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setCompanyBanner(ev.target?.result as string);
+    reader.onload = async (ev) => {
+      const url = ev.target?.result as string;
+      const compressed = file.type.startsWith("image/") ? await compressImage(url) : url;
+      setCompanyBanner(compressed);
     };
     reader.readAsDataURL(file);
   };
@@ -1830,10 +1869,14 @@ const OnboardingTour = ({
                       <Btn variant="ghost" onClick={() => bannerFileInputRef.current?.click()} style={{ fontSize: 8, padding: "4px 10px" }} fullWidth>
                         {companyBanner ? "Change Banner" : "Upload Banner"}
                       </Btn>
-                      <input type="file" ref={bannerFileInputRef} hidden accept="image/*" onChange={onBannerFileChange} />
+                      <input type="file" ref={bannerFileInputRef} hidden accept="image/*,video/*" onChange={onBannerFileChange} />
                       {companyBanner && (
                         <div style={{ marginTop: 8, height: 60, display: "flex", justifyContent: "center", alignItems: "center", background: C.white, border: `1px solid ${C.rule}` }}>
-                          <img src={companyBanner} style={{ maxHeight: "100%", maxWidth: "100%", objectFit: "cover" }} />
+                          {companyBanner.startsWith("data:video/") || companyBanner.endsWith(".mp4") || companyBanner.endsWith(".webm") ? (
+                            <video src={companyBanner} autoPlay muted loop playsInline style={{ maxHeight: "100%", maxWidth: "100%", objectFit: "cover" }} />
+                          ) : (
+                            <img src={companyBanner} style={{ maxHeight: "100%", maxWidth: "100%", objectFit: "cover" }} />
+                          )}
                         </div>
                       )}
                     </div>
@@ -2058,6 +2101,7 @@ function AuthPage({
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
   const [role, setRole] = useState("Designer");
+  const [userType, setUserType] = useState<"creator" | "recruiter">("creator");
   const [rememberMe, setRememberMe] = useState(
     localStorage.getItem("rememberedEmail") ? true : false,
   );
@@ -2098,8 +2142,8 @@ function AuthPage({
     try {
       const payload =
         mode === "login"
-          ? { email, password }
-          : { name, email, password, role };
+          ? { email: email.trim().toLowerCase(), password }
+          : { name: name.trim(), email: email.trim().toLowerCase(), password, role, userType };
       const data = await (wrapApi
         ? wrapApi(() => api[mode](payload))
         : api[mode](payload));
@@ -2231,12 +2275,78 @@ function AuthPage({
               <>
                 <div>
                   <div className="byline" style={{ marginBottom: 6 }}>
-                    Full Name
+                    Account Type
+                  </div>
+                  <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserType("creator");
+                        setRole("Designer");
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: "6px 12px",
+                        fontSize: 9,
+                        fontFamily: "'JetBrains Mono', monospace",
+                        background: userType === "creator" ? C.ink : "transparent",
+                        color: userType === "creator" ? C.paper : C.ink,
+                        border: `1px solid ${C.ink}`,
+                        cursor: "pointer",
+                        fontWeight: userType === "creator" ? 700 : 400
+                      }}
+                    >
+                      ARTISAN / CREATOR
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserType("recruiter");
+                        setRole("Creative Agency");
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: "6px 12px",
+                        fontSize: 9,
+                        fontFamily: "'JetBrains Mono', monospace",
+                        background: userType === "recruiter" ? C.ink : "transparent",
+                        color: userType === "recruiter" ? C.paper : C.ink,
+                        border: `1px solid ${C.ink}`,
+                        cursor: "pointer",
+                        fontWeight: userType === "recruiter" ? 700 : 400
+                      }}
+                    >
+                      AGENCY / RECRUITER
+                    </button>
+                  </div>
+                </div>
+
+                {userType === "creator" && (
+                  <div>
+                    <div className="byline" style={{ marginBottom: 6 }}>
+                      Primary Creative Role
+                    </div>
+                    <select
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                      className="mono bg-transparent border-b border-rule p-2 w-full text-[11px] mb-3"
+                      style={{ color: C.ink, outline: "none", fontStyle: "italic", border: "none", borderBottom: `1px solid ${C.rule}`, fontFamily: "'Spectral', serif" }}
+                    >
+                      {ROLES.map((r) => (
+                        <option key={r} value={r}>{r.toUpperCase()}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <div className="byline" style={{ marginBottom: 6 }}>
+                    Full Name (or Agency Name)
                   </div>
                   <Field
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Aarav Shah"
+                    placeholder={userType === "recruiter" ? "e.g. PixelForge Studios" : "e.g. Aarav Shah"}
                   />
                 </div>
               </>
@@ -2405,6 +2515,16 @@ function HomePage({
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    if (currentUser) {
+      api.getDashboardStats()
+        .then(setStats)
+        .catch(console.error);
+    }
+  }, [currentUser, posts]);
+
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
   const [postComments, setPostComments] = useState<Record<string, any[]>>({});
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
@@ -2495,11 +2615,16 @@ function HomePage({
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size exceeds 10MB limit. Please upload a smaller file.");
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       const url = ev.target?.result as string;
       const type = file.type.startsWith("video") ? "video" : "image";
-      setMedia({ url, type });
+      const mediaUrl = type === "video" ? url : await compressImage(url, 800, 0.7);
+      setMedia({ url: mediaUrl, type });
     };
     reader.readAsDataURL(file);
   };
@@ -2546,9 +2671,9 @@ function HomePage({
         }}
       >
         {[
-          ["Direct Dispatch", "14", "New Briefs Filed"],
-          ["Portfolio Reach", "4.8K", "Unique Impressions"],
-          ["Active Strategy", "29", "Messages Pending"],
+          ["Direct Dispatch", String(posts.length), "New Briefs Filed"],
+          ["Portfolio Reach", stats?.reach || "4.8K", "Unique Impressions"],
+          ["Active Strategy", stats?.followers !== undefined ? String(stats.followers) : "29", stats?.followers !== undefined ? "Active Followers" : "Messages Pending"],
         ].map(([l, v, s], i) => (
           <div
             key={l}
@@ -3448,8 +3573,16 @@ function ExplorePage({
             {filteredRecruiters.map((r) => (
               <Card key={r._id} style={{ padding: 0, overflow: "hidden" }} className="hover:shadow-md transition-shadow">
                 {/* Banner representation */}
-                <div style={{ height: 90, background: r.companyBanner ? `url(${r.companyBanner})` : C.accentBg, backgroundSize: "cover", backgroundPosition: "center", borderBottom: `1px solid ${C.rule}`, position: "relative" }}>
-                  {!r.companyBanner && (
+                <div style={{ height: 90, borderBottom: `1px solid ${C.rule}`, position: "relative", overflow: "hidden", background: C.accentBg }}>
+                  {r.companyBanner ? (
+                    (() => {
+                      const isVideo = r.companyBanner.startsWith("data:video/") || r.companyBanner.endsWith(".mp4") || r.companyBanner.endsWith(".webm");
+                      if (isVideo) {
+                        return <video src={r.companyBanner} autoPlay muted loop playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />;
+                      }
+                      return <img src={r.companyBanner} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />;
+                    })()
+                  ) : (
                     <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <span className="byline" style={{ opacity: 0.15 }}>ARTWITHIN LEDGER</span>
                     </div>
@@ -3575,6 +3708,14 @@ function MessagesPage({
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const sortedConvos = useMemo(() => {
+    return [...convos].sort((a, b) => {
+      const aTime = a.msgs && a.msgs.length > 0 ? new Date(a.msgs[a.msgs.length - 1].time || 0).getTime() : 0;
+      const bTime = b.msgs && b.msgs.length > 0 ? new Date(b.msgs[b.msgs.length - 1].time || 0).getTime() : 0;
+      return bTime - aTime;
+    });
+  }, [convos]);
+
   const [allCreators, setAllCreators] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -3620,10 +3761,10 @@ function MessagesPage({
         c._id === activeConvoId
           ? {
               ...c,
-              msgs: [...c.msgs, { from: currentUser?._id || "me", text: txt }],
+              msgs: [...c.msgs, { from: currentUser?._id || "me", text: txt, time: new Date().toISOString() }],
             }
-          : c,
-      ),
+          : c
+      )
     );
     // Bypassed wrapApi to prevent blocking loading overlay during active chat
     await api.sendMessage({ conversationId: activeConvoId, text: txt });
@@ -3731,7 +3872,7 @@ function MessagesPage({
           )}
         </div>
         <div style={{ flex: 1, overflowY: "auto" }}>
-          {convos.map((c) => (
+          {sortedConvos.map((c) => (
             <div
               key={c._id}
               onClick={() => setActiveConvoId(c._id)}
@@ -4175,6 +4316,19 @@ function RecruiterProfilePage({
       });
       setRec(updated);
       onUpdate?.(updated);
+
+      // Auto-post new campaign showcase to home feed
+      try {
+        await api.createPost({
+          text: `Added a new campaign showcase: "${newScTitle}" - ${newScDesc}. Results: ${newScResults || "Metric Pending"}`,
+          cat: "Showcase",
+          mediaUrl: newScCover,
+          mediaType: "image"
+        });
+      } catch (postErr) {
+        console.error("Auto-posting campaign showcase failed:", postErr);
+      }
+
       setShowAddSc(false);
       setNewScTitle("");
       setNewScDesc("");
@@ -4191,9 +4345,15 @@ function RecruiterProfilePage({
   const onScCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size exceeds 10MB limit. Please upload a smaller file.");
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setNewScCover(ev.target?.result as string);
+    reader.onload = async (ev) => {
+      const url = ev.target?.result as string;
+      const compressed = file.type.startsWith("image/") ? await compressImage(url) : url;
+      setNewScCover(compressed);
     };
     reader.readAsDataURL(file);
   };
@@ -4271,9 +4431,15 @@ function RecruiterProfilePage({
   const onLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size exceeds 10MB limit. Please upload a smaller file.");
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setEditLogo(ev.target?.result as string);
+    reader.onload = async (ev) => {
+      const url = ev.target?.result as string;
+      const compressed = file.type.startsWith("image/") ? await compressImage(url) : url;
+      setEditLogo(compressed);
     };
     reader.readAsDataURL(file);
   };
@@ -4281,9 +4447,15 @@ function RecruiterProfilePage({
   const onBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size exceeds 10MB limit. Please upload a smaller file.");
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setEditBanner(ev.target?.result as string);
+    reader.onload = async (ev) => {
+      const url = ev.target?.result as string;
+      const compressed = file.type.startsWith("image/") ? await compressImage(url) : url;
+      setEditBanner(compressed);
     };
     reader.readAsDataURL(file);
   };
@@ -4314,15 +4486,52 @@ function RecruiterProfilePage({
       {/* Recruiter Hero & Cover Banner with Double border framing */}
       <div style={{
         height: 240,
-        background: isEditing ? (editBanner ? `url(${editBanner})` : C.accentBg) : (rec.companyBanner ? `url(${rec.companyBanner})` : C.accentBg),
-        backgroundSize: "cover",
-        backgroundPosition: "center",
         border: `4px double ${C.ink}`,
         position: "relative",
         display: "flex",
         alignItems: "flex-end",
-        padding: 16
+        padding: 16,
+        overflow: "hidden",
+        background: C.accentBg
       }}>
+        {/* Render Banner Asset (Image or Video) */}
+        {(() => {
+          const bannerUrl = isEditing ? editBanner : rec.companyBanner;
+          if (!bannerUrl) return null;
+          const isVideo = bannerUrl.startsWith("data:video/") || bannerUrl.endsWith(".mp4") || bannerUrl.endsWith(".webm");
+          if (isVideo) {
+            return (
+              <video
+                src={bannerUrl}
+                autoPlay
+                muted
+                loop
+                playsInline
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  zIndex: 0
+                }}
+              />
+            );
+          }
+          return (
+            <img
+              src={bannerUrl}
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                zIndex: 0
+              }}
+            />
+          );
+        })()}
         {isEditing && (
           <button
             onClick={() => bannerInputRef.current?.click()}
@@ -4337,13 +4546,14 @@ function RecruiterProfilePage({
               fontFamily: "'JetBrains Mono', monospace",
               fontSize: 9,
               cursor: "pointer",
-              fontWeight: 600
+              fontWeight: 600,
+              zIndex: 10
             }}
           >
             SELECT BANNER ASSET
           </button>
         )}
-        <input type="file" ref={bannerInputRef} hidden accept="image/*" onChange={onBannerChange} />
+        <input type="file" ref={bannerInputRef} hidden accept="image/*,video/*" onChange={onBannerChange} />
 
         {/* Floating circular Logo pic */}
         <div style={{
@@ -5274,9 +5484,15 @@ function CreatorDossierLayout({
   const onProfilePicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size exceeds 10MB limit. Please upload a smaller file.");
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setEditProfilePic(ev.target?.result as string);
+    reader.onload = async (ev) => {
+      const url = ev.target?.result as string;
+      const compressed = file.type.startsWith("image/") ? await compressImage(url) : url;
+      setEditProfilePic(compressed);
     };
     reader.readAsDataURL(file);
   };
@@ -5284,9 +5500,15 @@ function CreatorDossierLayout({
   const onBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size exceeds 10MB limit. Please upload a smaller file.");
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setEditBanner(ev.target?.result as string);
+    reader.onload = async (ev) => {
+      const url = ev.target?.result as string;
+      const compressed = file.type.startsWith("image/") ? await compressImage(url) : url;
+      setEditBanner(compressed);
     };
     reader.readAsDataURL(file);
   };
@@ -5294,9 +5516,15 @@ function CreatorDossierLayout({
   const onPortFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size exceeds 10MB limit. Please upload a smaller file.");
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setNewPortUrl(ev.target?.result as string);
+    reader.onload = async (ev) => {
+      const url = ev.target?.result as string;
+      const compressed = file.type.startsWith("image/") ? await compressImage(url) : url;
+      setNewPortUrl(compressed);
     };
     reader.readAsDataURL(file);
   };
@@ -5458,6 +5686,19 @@ function CreatorDossierLayout({
       const updated = await api.updateMe({ portfolio: updatedPort });
       setProfile(updated);
       onUpdate?.(updated);
+
+      // Auto-post new portfolio item to home feed
+      try {
+        await api.createPost({
+          text: `Uploaded a new portfolio piece: "${newPortTitle}"`,
+          cat: "Portfolio",
+          mediaUrl: newPortUrl,
+          mediaType: newPortType
+        });
+      } catch (postErr) {
+        console.error("Auto-posting portfolio item failed:", postErr);
+      }
+
       setNewPortTitle("");
       setNewPortUrl("");
     } catch (err) {
@@ -5535,15 +5776,52 @@ function CreatorDossierLayout({
       {/* Cover Banner with Double border framing */}
       <div style={{
         height: 240,
-        background: isEditing ? (editBanner ? `url(${editBanner})` : C.accentBg) : (profile.coverBanner ? `url(${profile.coverBanner})` : C.accentBg),
-        backgroundSize: "cover",
-        backgroundPosition: "center",
         border: `4px double ${C.ink}`,
         position: "relative",
         display: "flex",
         alignItems: "flex-end",
-        padding: 16
+        padding: 16,
+        overflow: "hidden",
+        background: C.accentBg
       }}>
+        {/* Render Banner Asset (Image or Video) */}
+        {(() => {
+          const bannerUrl = isEditing ? editBanner : profile.coverBanner;
+          if (!bannerUrl) return null;
+          const isVideo = bannerUrl.startsWith("data:video/") || bannerUrl.endsWith(".mp4") || bannerUrl.endsWith(".webm");
+          if (isVideo) {
+            return (
+              <video
+                src={bannerUrl}
+                autoPlay
+                muted
+                loop
+                playsInline
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  zIndex: 0
+                }}
+              />
+            );
+          }
+          return (
+            <img
+              src={bannerUrl}
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                zIndex: 0
+              }}
+            />
+          );
+        })()}
         {isEditing && (
           <button
             onClick={() => bannerInputRef.current?.click()}
@@ -5558,13 +5836,14 @@ function CreatorDossierLayout({
               fontFamily: "'JetBrains Mono', monospace",
               fontSize: 9,
               cursor: "pointer",
-              fontWeight: 600
+              fontWeight: 600,
+              zIndex: 10
             }}
           >
             SELECT BANNER ASSET
           </button>
         )}
-        <input type="file" ref={bannerInputRef} hidden accept="image/*" onChange={onBannerChange} />
+        <input type="file" ref={bannerInputRef} hidden accept="image/*,video/*" onChange={onBannerChange} />
 
         {/* Floating Profile pic */}
         <div style={{
@@ -6952,9 +7231,15 @@ function ProfilePage({
   const onProfilePicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size exceeds 10MB limit. Please upload a smaller file.");
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setEditProfilePic(ev.target?.result as string);
+    reader.onload = async (ev) => {
+      const url = ev.target?.result as string;
+      const compressed = file.type.startsWith("image/") ? await compressImage(url) : url;
+      setEditProfilePic(compressed);
     };
     reader.readAsDataURL(file);
   };
@@ -6962,9 +7247,15 @@ function ProfilePage({
   const onPortFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size exceeds 10MB limit. Please upload a smaller file.");
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setNewPortUrl(ev.target?.result as string);
+    reader.onload = async (ev) => {
+      const url = ev.target?.result as string;
+      const compressed = file.type.startsWith("image/") ? await compressImage(url) : url;
+      setNewPortUrl(compressed);
     };
     reader.readAsDataURL(file);
   };
@@ -7629,6 +7920,36 @@ const Lightbox = ({
   </motion.div>
 );
 
+const compressImage = (base64Str: string, maxWidth = 800, quality = 0.7): Promise<string> => {
+  return new Promise((resolve) => {
+    if (!base64Str || !base64Str.startsWith("data:image/")) {
+      resolve(base64Str);
+      return;
+    }
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let width = img.width;
+      let height = img.height;
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      } else {
+        resolve(base64Str);
+      }
+    };
+    img.onerror = () => resolve(base64Str);
+  });
+};
+
 // ── App Shell ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [page, setPage] = useState(() => sessionStorage.getItem("artwithin_page") || "Home");
@@ -7652,6 +7973,33 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [globalLoading, setGlobalLoading] = useState(false);
+  const [unreadConvos, setUnreadConvos] = useState<Set<string>>(new Set());
+  const [toast, setToast] = useState<{ title: string; text: string; conversationId: string } | null>(null);
+
+  const pageRef = useRef(page);
+  const activeConvoIdRef = useRef(activeConvoId);
+  useEffect(() => { pageRef.current = page; }, [page]);
+  useEffect(() => { activeConvoIdRef.current = activeConvoId; }, [activeConvoId]);
+
+  useEffect(() => {
+    if (page === "Messages" && activeConvoId) {
+      setUnreadConvos((prev) => {
+        if (prev.has(activeConvoId)) {
+          const n = new Set(prev);
+          n.delete(activeConvoId);
+          return n;
+        }
+        return prev;
+      });
+    }
+  }, [page, activeConvoId]);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   useEffect(() => {
     sessionStorage.setItem("artwithin_page", page);
@@ -7693,7 +8041,7 @@ export default function App() {
       const res = await fn();
       return res;
     } finally {
-      setTimeout(() => setGlobalLoading(false), 800); // Small delay for visual impact
+      setTimeout(() => setGlobalLoading(false), 150); // Small delay for visual impact
     }
   };
 
@@ -7703,7 +8051,22 @@ export default function App() {
     ws.onopen = () => ws.send(JSON.stringify({ type: "auth", token }));
     ws.onmessage = (e) => {
       const data = JSON.parse(e.data);
-      if (data.type === "message") setIncomingMsg(data);
+      if (data.type === "message") {
+        setIncomingMsg(data);
+        const isCurrentlyLooking = pageRef.current === "Messages" && activeConvoIdRef.current === data.conversationId;
+        if (!isCurrentlyLooking) {
+          setUnreadConvos((prev) => {
+            const n = new Set(prev);
+            n.add(data.conversationId);
+            return n;
+          });
+          setToast({
+            title: `New message from ${data.senderName || "someone"}`,
+            text: data.msg.text,
+            conversationId: data.conversationId
+          });
+        }
+      }
     };
     ws.onclose = () => {
       setTimeout(() => {
@@ -7985,8 +8348,22 @@ export default function App() {
                     if (p === "Profile") setSelectedCreator(null);
                     setPage(p);
                   }}
+                  style={{ position: "relative" }}
                 >
                   {p}
+                  {p === "Messages" && unreadConvos.size > 0 && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: 2,
+                        right: 8,
+                        width: 6,
+                        height: 6,
+                        background: C.accent,
+                        borderRadius: "50%",
+                      }}
+                    />
+                  )}
                 </button>
               ),
             )}
@@ -8067,6 +8444,43 @@ export default function App() {
               type={lightbox.type}
               onClose={() => setLightbox(null)}
             />
+          )}
+        </AnimatePresence>
+
+        {/* Floating Toast Notification */}
+        <AnimatePresence>
+          {toast && (
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.9 }}
+              onClick={() => {
+                setActiveConvoId(toast.conversationId);
+                setPage("Messages");
+                setToast(null);
+              }}
+              style={{
+                position: "fixed",
+                bottom: 24,
+                right: 24,
+                background: C.white,
+                color: C.ink,
+                border: `2px solid ${C.accent}`,
+                padding: "12px 18px",
+                maxWidth: 320,
+                zIndex: 1000,
+                cursor: "pointer",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+              }}
+            >
+              <div className="byline" style={{ color: C.accent, marginBottom: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>{toast.title}</span>
+                <span style={{ fontSize: 8 }}>CLICK TO VIEW</span>
+              </div>
+              <div className="italic-serif" style={{ fontSize: 13, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                "{toast.text}"
+              </div>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
