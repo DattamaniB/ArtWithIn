@@ -276,6 +276,7 @@ interface Post {
   time: string;
   mediaUrl?: string;
   mediaType?: "image" | "video";
+  creatorType?: string;
 }
 interface Creator {
   _id: string;
@@ -680,11 +681,13 @@ const HR = ({
 const Tag = ({
   children,
   red = false,
+  style,
 }: {
   children: string;
   red?: boolean;
+  style?: React.CSSProperties;
 }) => (
-  <span className={`section-tag${red ? " section-tag-red" : ""}`}>
+  <span className={`section-tag${red ? " section-tag-red" : ""}`} style={style}>
     {children}
   </span>
 );
@@ -2840,99 +2843,201 @@ function HomePage({
               borderRight: `1px solid ${C.rule}`,
             }}
           >
-            <Tag red>{posts[0].cat}</Tag>
-            <h2 className="headline-xl" style={{ margin: "12px 0" }}>
-              {posts[0].name.toUpperCase()} REVEALS LATEST PLATE ARCHITECTURE
-            </h2>
-            <HR style={{ margin: "12px 0" }} />
-            <Byline
-              author={posts[0].name}
-              role={posts[0].role}
-              time={posts[0].time}
-            />
-            {posts[0].mediaUrl ? (
-              <Hoarding
-                url={posts[0].mediaUrl}
-                type={posts[0].mediaType || "image"}
-                label={`PLATE EXHIBIT — ${posts[0].cat.toUpperCase()}`}
-                caption={`Documented capture from ${posts[0].name}'s latest workshop session. Metadata suggests technical variance in color space.`}
-                onLightbox={onLightbox}
-              />
-            ) : (
-              <div
-                style={{
-                  margin: "16px 0",
-                  border: `3px double ${C.ink}`,
-                  padding: 4,
-                  background: C.paper,
-                }}
-              >
+            {posts[0].creatorType === "recruiter" ? (
+              <div style={{ border: `4px double ${C.accent}`, padding: 20, background: "rgba(180, 83, 9, 0.02)", position: "relative" }}>
+                <div style={{ position: "absolute", top: 8, right: 12 }} className="byline">
+                  <span style={{ background: C.accent, color: C.white, padding: "2px 6px", fontSize: 8, fontWeight: 700 }}>RECRUITER BRIEF</span>
+                </div>
+                <Tag red={false} style={{ color: C.accent, borderColor: C.accent }}>{posts[0].cat}</Tag>
+                <h2 className="headline-xl" style={{ margin: "16px 0 12px", fontSize: 24, letterSpacing: "0.05em", color: C.ink }}>
+                  {posts[0].name.toUpperCase()} INITIATES NEW STRATEGIC INITIATIVE
+                </h2>
+                <HR style={{ margin: "12px 0", borderColor: C.accent }} />
+                <Byline
+                  author={posts[0].name}
+                  role={posts[0].role || "Creative Recruiter"}
+                  time={posts[0].time}
+                />
+                {posts[0].mediaUrl ? (
+                  <Hoarding
+                    url={posts[0].mediaUrl}
+                    type={posts[0].mediaType || "image"}
+                    label={`CAMPAIGN EXHIBIT — ${posts[0].cat.toUpperCase()}`}
+                    caption={`Campaign assets registered in the platform showcase repository by ${posts[0].name}.`}
+                    onLightbox={onLightbox}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      margin: "16px 0",
+                      border: `3px double ${C.accent}`,
+                      padding: 4,
+                      background: C.paper,
+                    }}
+                  >
+                    <div
+                      style={{
+                        border: `1px solid ${C.accent}`,
+                        height: 120,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: C.accent,
+                      }}
+                      className="byline"
+                    >
+                      No visual brief attached
+                    </div>
+                  </div>
+                )}
+                <p className="body-copy italic-serif" style={{ fontSize: 13, color: C.inkMid, lineHeight: 1.5, marginTop: 12 }}>
+                  "{posts[0].text}"
+                </p>
                 <div
                   style={{
-                    border: `1px solid ${C.ink}`,
-                    height: 120,
                     display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: C.inkFaint,
+                    gap: 24,
+                    marginTop: 20,
+                    paddingTop: 12,
+                    borderTop: `1px solid ${C.rule}`,
                   }}
-                  className="byline"
                 >
-                  No visual dispatch attached
+                  <button
+                    onClick={() => toggleLike(posts[0]._id)}
+                    className="byline"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: likedIds.has(posts[0]._id) ? C.accent : C.inkMid,
+                    }}
+                  >
+                    {likedIds.has(posts[0]._id) ? "♥" : "♡"} {posts[0].likes} ENGAGEMENTS
+                  </button>
+                  <button
+                    onClick={() => toggleComments(posts[0]._id)}
+                    className="byline"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: expandedPostId === posts[0]._id ? C.accent : C.inkMid,
+                      fontWeight: expandedPostId === posts[0]._id ? 700 : 400,
+                    }}
+                  >
+                    ✎ {posts[0].comments} DISCUSSIONS
+                  </button>
+                  <Btn
+                    variant="ghost"
+                    style={{ marginLeft: "auto", fontSize: 8, padding: "4px 10px", borderColor: C.accent, color: C.accent }}
+                    onClick={() => {
+                      api.getUser(posts[0].creatorId).then((u) => {
+                        setSelectedCreator(u);
+                        setPage("Profile");
+                      });
+                    }}
+                  >
+                    VIEW CAMPAIGN →
+                  </Btn>
                 </div>
               </div>
+            ) : (
+              <>
+                <Tag red>{posts[0].cat}</Tag>
+                <h2 className="headline-xl" style={{ margin: "12px 0" }}>
+                  {posts[0].name.toUpperCase()} REVEALS LATEST PLATE ARCHITECTURE
+                </h2>
+                <HR style={{ margin: "12px 0" }} />
+                <Byline
+                  author={posts[0].name}
+                  role={posts[0].role}
+                  time={posts[0].time}
+                />
+                {posts[0].mediaUrl ? (
+                  <Hoarding
+                    url={posts[0].mediaUrl}
+                    type={posts[0].mediaType || "image"}
+                    label={`PLATE EXHIBIT — ${posts[0].cat.toUpperCase()}`}
+                    caption={`Documented capture from ${posts[0].name}'s latest workshop session. Metadata suggests technical variance in color space.`}
+                    onLightbox={onLightbox}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      margin: "16px 0",
+                      border: `3px double ${C.ink}`,
+                      padding: 4,
+                      background: C.paper,
+                    }}
+                  >
+                    <div
+                      style={{
+                        border: `1px solid ${C.ink}`,
+                        height: 120,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: C.inkFaint,
+                      }}
+                      className="byline"
+                    >
+                      No visual dispatch attached
+                    </div>
+                  </div>
+                )}
+                <p className="body-copy drop-cap">
+                  {posts[0].text} This contribution signifies a notable shift in the
+                  ecosystem, according to various archive observers.
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 24,
+                    marginTop: 20,
+                    paddingTop: 12,
+                    borderTop: `1px solid ${C.rule}`,
+                  }}
+                >
+                  <button
+                    onClick={() => toggleLike(posts[0]._id)}
+                    className="byline"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: likedIds.has(posts[0]._id) ? C.accent : C.inkMid,
+                    }}
+                  >
+                    {likedIds.has(posts[0]._id) ? "♥" : "♡"} {posts[0].likes} LIKES
+                  </button>
+                  <button
+                    onClick={() => toggleComments(posts[0]._id)}
+                    className="byline"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: expandedPostId === posts[0]._id ? C.accent : C.inkMid,
+                      fontWeight: expandedPostId === posts[0]._id ? 700 : 400,
+                    }}
+                  >
+                    ✎ {posts[0].comments} RESPONSES
+                  </button>
+                  <Btn
+                    variant="ghost"
+                    style={{ marginLeft: "auto", fontSize: 8, padding: "4px 10px" }}
+                    onClick={() => {
+                      api.getUser(posts[0].creatorId).then((u) => {
+                        setSelectedCreator(u);
+                        setPage("Profile");
+                      });
+                    }}
+                  >
+                    PROFILE →
+                  </Btn>
+                </div>
+              </>
             )}
-            <p className="body-copy drop-cap">
-              {posts[0].text} This contribution signifies a notable shift in the
-              ecosystem, according to various archive observers.
-            </p>
-            <div
-              style={{
-                display: "flex",
-                gap: 24,
-                marginTop: 20,
-                paddingTop: 12,
-                borderTop: `1px solid ${C.rule}`,
-              }}
-            >
-              <button
-                onClick={() => toggleLike(posts[0]._id)}
-                className="byline"
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: likedIds.has(posts[0]._id) ? C.accent : C.inkMid,
-                }}
-              >
-                {likedIds.has(posts[0]._id) ? "♥" : "♡"} {posts[0].likes} LIKES
-              </button>
-              <button
-                onClick={() => toggleComments(posts[0]._id)}
-                className="byline"
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: expandedPostId === posts[0]._id ? C.accent : C.inkMid,
-                  fontWeight: expandedPostId === posts[0]._id ? 700 : 400,
-                }}
-              >
-                ✎ {posts[0].comments} RESPONSES
-              </button>
-              <Btn
-                variant="ghost"
-                style={{ marginLeft: "auto", fontSize: 8, padding: "4px 10px" }}
-                onClick={() => {
-                  api.getUser(posts[0].creatorId).then((u) => {
-                    setSelectedCreator(u);
-                    setPage("Profile");
-                  });
-                }}
-              >
-                PROFILE →
-              </Btn>
-            </div>
 
             {/* Collapsible comments/responses view */}
             <AnimatePresence>
@@ -2991,96 +3096,101 @@ function HomePage({
             <div className="byline" style={{ marginBottom: 12 }}>
               OTHER DISPATCHES
             </div>
-            {posts.slice(1, 6).map((p) => (
-              <div
-                key={p._id}
-                style={{
-                  marginBottom: 16,
-                  paddingBottom: 16,
-                  borderBottom: `1px solid ${C.rule}`,
-                }}
-              >
-                <div className="headline-sm">
-                  {p.name}: {p.text.split(" ").slice(0, 6).join(" ")}…
-                </div>
-                <Byline author={p.name} time={p.time} />
-                <div style={{ display: "flex", gap: 12, marginTop: 4, alignItems: "center" }}>
-                  <button
-                    onClick={() => toggleLike(p._id)}
-                    className="byline"
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      color: likedIds.has(p._id) ? C.accent : C.inkFaint,
-                    }}
-                  >
-                    {likedIds.has(p._id) ? "♥" : "♡"} {p.likes}
-                  </button>
-                  <button
-                    onClick={() => toggleComments(p._id)}
-                    className="byline"
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      color: expandedPostId === p._id ? C.accent : C.inkFaint,
-                    }}
-                  >
-                    ✎ {p.comments || 0} RESPONSES
-                  </button>
-                </div>
-
-                <AnimatePresence>
-                  {expandedPostId === p._id && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
+            {posts.slice(1, 6).map((p) => {
+              const isRecruiterPost = p.creatorType === "recruiter";
+              return (
+                <div
+                  key={p._id}
+                  style={{
+                    marginBottom: 16,
+                    paddingBottom: 16,
+                    paddingLeft: isRecruiterPost ? 8 : 0,
+                    borderLeft: isRecruiterPost ? `2px solid ${C.accent}` : "none",
+                    borderBottom: `1px solid ${C.rule}`,
+                  }}
+                >
+                  <div className="headline-sm" style={{ color: isRecruiterPost ? C.accent : C.ink }}>
+                    {isRecruiterPost ? "◇ [CAMPAIGN] " : ""}{p.name}: {p.text.split(" ").slice(0, 6).join(" ")}…
+                  </div>
+                  <Byline author={p.name} time={p.time} role={isRecruiterPost ? "Creative Agency" : undefined} />
+                  <div style={{ display: "flex", gap: 12, marginTop: 4, alignItems: "center" }}>
+                    <button
+                      onClick={() => toggleLike(p._id)}
+                      className="byline"
                       style={{
-                        overflow: "hidden",
-                        marginTop: 10,
-                        paddingTop: 8,
-                        borderTop: `1px dashed ${C.rule}`,
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: likedIds.has(p._id) ? C.accent : C.inkFaint,
                       }}
                     >
-                      {loadingComments[p._id] ? (
-                        <div className="italic-serif text-[10px] opacity-50 py-2">Transmitting...</div>
-                      ) : (
-                        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
-                          {(postComments[p._id] || []).map((c) => (
-                            <div key={c._id} style={{ borderBottom: `1px dotted ${C.rule}`, paddingBottom: 6 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                                <div className="byline" style={{ fontSize: 8, fontWeight: 700 }}>{c.name}</div>
-                                <div className="byline" style={{ fontSize: 7, opacity: 0.6 }}>{c.time}</div>
+                      {likedIds.has(p._id) ? "♥" : "♡"} {p.likes}
+                    </button>
+                    <button
+                      onClick={() => toggleComments(p._id)}
+                      className="byline"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: expandedPostId === p._id ? C.accent : C.inkFaint,
+                      }}
+                    >
+                      ✎ {p.comments || 0} RESPONSES
+                    </button>
+                  </div>
+
+                  <AnimatePresence>
+                    {expandedPostId === p._id && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        style={{
+                          overflow: "hidden",
+                          marginTop: 10,
+                          paddingTop: 8,
+                          borderTop: `1px dashed ${C.rule}`,
+                        }}
+                      >
+                        {loadingComments[p._id] ? (
+                          <div className="italic-serif text-[10px] opacity-50 py-2">Transmitting...</div>
+                        ) : (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
+                            {(postComments[p._id] || []).map((c) => (
+                              <div key={c._id} style={{ borderBottom: `1px dotted ${C.rule}`, paddingBottom: 6 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                                  <div className="byline" style={{ fontSize: 8, fontWeight: 700 }}>{c.name}</div>
+                                  <div className="byline" style={{ fontSize: 7, opacity: 0.6 }}>{c.time}</div>
+                                </div>
+                                <div className="italic-serif text-[11px] text-zinc-700">{c.text}</div>
                               </div>
-                              <div className="italic-serif text-[11px] text-zinc-700">{c.text}</div>
-                            </div>
-                          ))}
-                          {(postComments[p._id] || []).length === 0 && (
-                            <div className="italic-serif text-[10px] opacity-40 py-2">No responses.</div>
-                          )}
-                        </div>
-                      )}
-                      {currentUser && (
-                        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                          <Field
-                            value={commentInputs[p._id] || ""}
-                            onChange={(e) => setCommentInputs({ ...commentInputs, [p._id]: e.target.value })}
-                            placeholder="Write a response..."
-                            style={{ flex: 1, fontSize: 11 }}
-                            onKeyDown={(e) => e.key === "Enter" && handleAddComment(p._id)}
-                          />
-                          <Btn onClick={() => handleAddComment(p._id)} style={{ fontSize: 7, padding: "2px 8px" }}>
-                            →
-                          </Btn>
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ))}
+                            ))}
+                            {(postComments[p._id] || []).length === 0 && (
+                              <div className="italic-serif text-[10px] opacity-40 py-2 text-center">No dispatches responded to this plate.</div>
+                            )}
+                          </div>
+                        )}
+                        {currentUser && (
+                          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                            <Field
+                              value={commentInputs[p._id] || ""}
+                              onChange={(e) => setCommentInputs({ ...commentInputs, [p._id]: e.target.value })}
+                              placeholder="Write a response..."
+                              style={{ flex: 1, fontSize: 11 }}
+                              onKeyDown={(e) => e.key === "Enter" && handleAddComment(p._id)}
+                            />
+                            <Btn onClick={() => handleAddComment(p._id)} style={{ fontSize: 7, padding: "2px 8px" }}>
+                              →
+                            </Btn>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -3233,7 +3343,7 @@ function ExplorePage({
     );
 
   return (
-    <div className="fade-in">
+    <motion.div className="fade-in">
       {/* Switcher Tab Header */}
       <div
         style={{
@@ -3685,7 +3795,7 @@ function ExplorePage({
           </div>
         </>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -3696,6 +3806,7 @@ function MessagesPage({
   setIncomingMsg,
   currentUser,
   wrapApi,
+  unreadConvos,
 }: {
   activeConvoId: string;
   setActiveConvoId: (id: string) => void;
@@ -3703,6 +3814,7 @@ function MessagesPage({
   setIncomingMsg: (m: any) => void;
   currentUser: User | null;
   wrapApi?: <T>(fn: () => Promise<T>) => Promise<T>;
+  unreadConvos: Set<string>;
 }) {
   const [convos, setConvos] = useState<Convo[]>([]);
   const [input, setInput] = useState("");
@@ -3771,7 +3883,7 @@ function MessagesPage({
   };
 
   return (
-    <div
+    <motion.div
       className="fade-in"
       style={{
         display: "grid",
@@ -3872,26 +3984,38 @@ function MessagesPage({
           )}
         </div>
         <div style={{ flex: 1, overflowY: "auto" }}>
-          {sortedConvos.map((c) => (
-            <div
-              key={c._id}
-              onClick={() => setActiveConvoId(c._id)}
-              style={{
-                padding: 16,
-                cursor: "pointer",
-                background:
-                  activeConvoId === c._id ? C.accentBg : "transparent",
-                borderBottom: `1px solid ${C.rule}`,
-              }}
-            >
-              <div className="headline-sm" style={{ fontSize: 13 }}>
-                {c.name}
+          {sortedConvos.map((c) => {
+            const isUnread = unreadConvos?.has(c._id);
+            return (
+              <div
+                key={c._id}
+                onClick={() => setActiveConvoId(c._id)}
+                style={{
+                  padding: 16,
+                  cursor: "pointer",
+                  background:
+                    activeConvoId === c._id ? C.accentBg : "transparent",
+                  borderBottom: `1px solid ${C.rule}`,
+                  position: "relative"
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div className="headline-sm" style={{ fontSize: 13 }}>
+                    {c.name}
+                  </div>
+                  {isUnread && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: C.accent }} />
+                      <span className="byline" style={{ fontSize: 7, color: C.accent, fontWeight: 700 }}>NEW MESSAGE FILED</span>
+                    </div>
+                  )}
+                </div>
+                <div className="byline" style={{ fontSize: 8 }}>
+                  Latest Message Attached
+                </div>
               </div>
-              <div className="byline" style={{ fontSize: 8 }}>
-                Latest Message Attached
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column" }}>
@@ -3963,7 +4087,7 @@ function MessagesPage({
           <Btn onClick={send}>Send →</Btn>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 function DashboardPage() {
@@ -4592,7 +4716,7 @@ function RecruiterProfilePage({
               <Camera size={14} />
             </button>
           )}
-          <input type="file" ref={logoInputRef} hidden accept="image/*" onChange={onLogoChange} />
+          <input type="file" ref={logoInputRef} hidden accept="image/*,video/*" onChange={onLogoChange} />
         </div>
       </div>
 
@@ -5757,6 +5881,20 @@ function CreatorDossierLayout({
     return parseFloat((total / profile.reviews.length).toFixed(1));
   }, [profile.reviews]);
 
+  const creatorTrustScore = useMemo(() => {
+    const base = Math.round(averageRating * 16); // Up to 80 points
+    const completionBonus = Math.round(profileCompletion * 0.15); // Up to 15 points
+    const portfolioBonus = Math.min(5, (profile.portfolio?.length || 0) * 1); // Up to 5 points
+    return Math.min(100, Math.max(50, base + completionBonus + portfolioBonus));
+  }, [averageRating, profileCompletion, profile.portfolio]);
+
+  const creatorTier = useMemo(() => {
+    if (creatorTrustScore >= 95) return "VANGUARD";
+    if (creatorTrustScore >= 85) return "MAESTRO";
+    if (creatorTrustScore >= 70) return "PROFESSIONAL";
+    return "VERIFIED";
+  }, [creatorTrustScore]);
+
   return (
     <div className="fade-in max-w-4xl mx-auto paper-grain" style={{ background: C.paper, padding: "20px 0" }}>
       {/* Toast notifications */}
@@ -5882,7 +6020,7 @@ function CreatorDossierLayout({
               <Camera size={14} />
             </button>
           )}
-          <input type="file" ref={logoInputRef} hidden accept="image/*" onChange={onProfilePicChange} />
+          <input type="file" ref={logoInputRef} hidden accept="image/*,video/*" onChange={onProfilePicChange} />
         </div>
       </div>
 
@@ -6706,18 +6844,18 @@ function CreatorDossierLayout({
                       stroke={C.accent}
                       strokeWidth="6"
                       strokeDasharray="276"
-                      strokeDashoffset={276 - (276 * (profile.creatorTrustScore || 96)) / 100}
+                      strokeDashoffset={276 - (276 * creatorTrustScore) / 100}
                       strokeLinecap="round"
                       transform="rotate(-90 50 50)"
                     />
                   </svg>
                   <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                    <div className="headline-md" style={{ fontSize: 28, fontWeight: 800 }}>{profile.creatorTrustScore || 96}</div>
+                    <div className="headline-md" style={{ fontSize: 28, fontWeight: 800 }}>{creatorTrustScore}</div>
                     <div className="byline" style={{ fontSize: 6.5 }}>RATING SCORE</div>
                   </div>
                 </div>
 
-                <div className="headline-sm" style={{ fontSize: 16 }}>{profile.creatorTier?.toUpperCase() || "MASTER"} TRUST TIER</div>
+                <div className="headline-sm" style={{ fontSize: 16 }}>{creatorTier} TRUST TIER</div>
                 <p className="italic-serif text-[11px] text-zinc-500 mt-2 leading-relaxed">
                   "This creative partner is recognized by the ledger audit framework as an active verified creative."
                 </p>
@@ -6746,24 +6884,42 @@ function CreatorDossierLayout({
                 <div style={{ marginBottom: 28 }}>
                   <div className="byline" style={{ marginBottom: 12, color: C.accent }}>◆ VERIFIED PARTNERSHIPS REGISTER</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {profile.collaborationHistory && profile.collaborationHistory.length > 0 ? (
-                      profile.collaborationHistory.map((collab, idx) => (
-                        <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px dotted ${C.rule}`, paddingBottom: 6 }}>
-                          <div>
-                            <span className="headline-sm" style={{ fontSize: 11, fontWeight: 700 }}>{collab.projectName.toUpperCase()}</span>
-                            <span className="byline" style={{ fontSize: 7, color: C.inkMid, marginLeft: 8 }}>WITH {collab.companyName.toUpperCase()}</span>
+                    {(() => {
+                      const list = [];
+                      if (profile.collaborationHistory && profile.collaborationHistory.length > 0) {
+                        list.push(...profile.collaborationHistory);
+                      }
+                      if (profile.collaborations && profile.collaborations.length > 0) {
+                        profile.collaborations.forEach(col => {
+                          list.push({
+                            projectName: col.projectName || "Creative Project",
+                            companyName: col.creatorName || "Recruiter",
+                            projectStatus: col.status || "Completed",
+                            completionDate: "Recent"
+                          });
+                        });
+                      }
+                      
+                      if (list.length > 0) {
+                        return list.map((collab, idx) => (
+                          <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px dotted ${C.rule}`, paddingBottom: 6 }}>
+                            <div>
+                              <span className="headline-sm" style={{ fontSize: 11, fontWeight: 700 }}>{collab.projectName.toUpperCase()}</span>
+                              <span className="byline" style={{ fontSize: 7, color: C.inkMid, marginLeft: 8 }}>WITH {collab.companyName.toUpperCase()}</span>
+                            </div>
+                            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                              <span className="mono" style={{ fontSize: 8, color: C.success }}>{(collab.projectStatus || "Completed").toUpperCase()}</span>
+                              <span className="byline" style={{ fontSize: 7, color: C.inkFaint }}>{collab.completionDate}</span>
+                            </div>
                           </div>
-                          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                            <span className="mono" style={{ fontSize: 8, color: C.success }}>{collab.projectStatus.toUpperCase()}</span>
-                            <span className="byline" style={{ fontSize: 7, color: C.inkFaint }}>{collab.completionDate}</span>
-                          </div>
+                        ));
+                      }
+                      return (
+                        <div className="italic-serif text-zinc-400 text-xs py-4">
+                          No previous platform collaborations filed in this ledger.
                         </div>
-                      ))
-                    ) : (
-                      <div className="italic-serif text-zinc-400 text-xs py-4">
-                        No previous platform collaborations filed in this ledger.
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -6840,7 +6996,11 @@ function CreatorDossierLayout({
 
                   {/* SVG graph container */}
                   <div style={{ width: "100%" }}>
-                    <SVGAnalyticsGraph filter={analyticsFilter} />
+                    <SVGAnalyticsGraph
+                      filter={analyticsFilter}
+                      viewsCount={profile.profileViews || (profile.followers ? profile.followers * 15 : 100)}
+                      likesCount={profile.likesReceived || (profile.portfolio ? profile.portfolio.length * 8 : 50)}
+                    />
                   </div>
 
                   {/* Legends */}
@@ -6860,21 +7020,65 @@ function CreatorDossierLayout({
                 <div>
                   <div className="byline" style={{ marginBottom: 12, color: C.accent }}>◆ CHRONOLOGICAL PLATFORM ACTIVITY LOG</div>
                   <div style={{ borderLeft: `1px dotted ${C.rule}`, paddingLeft: 16, marginLeft: 6, display: "flex", flexDirection: "column", gap: 16 }}>
-                    {[
-                      { type: "upload", title: "PORTFOLIO LEDGER ACCRUAL", desc: `Successfully cataloged portfolio entry: "${profile.portfolio?.[0]?.title || 'Mumbai Stills'}" in database archive.`, time: "2 Hours ago" },
-                      { type: "follow", title: "PARTNERSHIP CORRESPONDENCE UPDATE", desc: "A recruiting partner followed your creative dispatch registry feed.", time: "1 Day ago" },
-                      { type: "achievement", title: "CREATIVE TIER ADVANCEMENT", desc: `Awarded verified platform ${profile.creatorTier || 'Master'} Trust Tier credentials after successful contract compliance audits.`, time: "3 Days ago" },
-                      { type: "review", title: "CLIENT RATED DISPATCH RATING INDEXED", desc: "Indexed perfect 5-star verified rated review from corporate client in collaborative database.", time: "1 Week ago" }
-                    ].map((evt, idx) => (
-                      <div key={idx} style={{ position: "relative" }}>
-                        <div style={{ position: "absolute", left: -21, top: 4, width: 7, height: 7, borderRadius: "50%", background: C.accent }} />
-                        <div className="byline" style={{ fontSize: 7.5, color: C.accent }}>{evt.title}</div>
-                        <p className="body-copy" style={{ fontSize: 11.5, color: C.inkMid, lineHeight: 1.4, margin: "2px 0" }}>
-                          {evt.desc}
-                        </p>
-                        <span className="byline" style={{ fontSize: 6.5, opacity: 0.5 }}>{evt.time}</span>
-                      </div>
-                    ))}
+                    {(() => {
+                      const timeline = [];
+                      if (profile.portfolio && profile.portfolio.length > 0) {
+                        timeline.push({
+                          type: "upload",
+                          title: "PORTFOLIO LEDGER ACCRUAL",
+                          desc: `Successfully cataloged portfolio entry: "${profile.portfolio[0].title}" in database archive. Total of ${profile.portfolio.length} portfolio items cataloged.`,
+                          time: "2 Hours ago"
+                        });
+                      } else {
+                        timeline.push({
+                          type: "upload",
+                          title: "PORTFOLIO LEDGER ACCRUAL",
+                          desc: "No portfolio items recorded in active registry archive.",
+                          time: "System Init"
+                        });
+                      }
+
+                      timeline.push({
+                        type: "follow",
+                        title: "PARTNERSHIP CORRESPONDENCE UPDATE",
+                        desc: `A recruiting partner followed your creative dispatch registry feed. Current followers: ${followersCount}.`,
+                        time: "1 Day ago"
+                      });
+
+                      timeline.push({
+                        type: "achievement",
+                        title: "CREATIVE TIER ADVANCEMENT",
+                        desc: `Awarded verified platform ${creatorTier} Trust Tier credentials after successful contract compliance audits.`,
+                        time: "3 Days ago"
+                      });
+
+                      if (profile.reviews && profile.reviews.length > 0) {
+                        timeline.push({
+                          type: "review",
+                          title: "CLIENT RATED DISPATCH RATING INDEXED",
+                          desc: `Indexed ${profile.reviews[0].rating}-star verified rated review: "${profile.reviews[0].reviewText.substring(0, 60)}..." from ${profile.reviews[0].creatorName || 'client'}.`,
+                          time: "1 Week ago"
+                        });
+                      } else {
+                        timeline.push({
+                          type: "review",
+                          title: "CLIENT RATED DISPATCH RATING INDEXED",
+                          desc: "Waiting for client reviews to index in the collaborative ledger.",
+                          time: "Pending"
+                        });
+                      }
+
+                      return timeline.map((evt, idx) => (
+                        <div key={idx} style={{ position: "relative" }}>
+                          <div style={{ position: "absolute", left: -21, top: 4, width: 7, height: 7, borderRadius: "50%", background: C.accent }} />
+                          <div className="byline" style={{ fontSize: 7.5, color: C.accent }}>{evt.title}</div>
+                          <p className="body-copy" style={{ fontSize: 11.5, color: C.inkMid, lineHeight: 1.4, margin: "2px 0" }}>
+                            {evt.desc}
+                          </p>
+                          <span className="byline" style={{ fontSize: 6.5, opacity: 0.5 }}>{evt.time}</span>
+                        </div>
+                      ));
+                    })()}
                   </div>
                 </div>
               </div>
@@ -6915,33 +7119,85 @@ function CreatorDossierLayout({
 }
 
 // ── SVG Analytics Graph Helper Component ────────────────────────────────────────
-function SVGAnalyticsGraph({ filter }: { filter: "daily" | "weekly" | "monthly" | "yearly" }) {
-  const dataMap = {
-    daily: {
+function SVGAnalyticsGraph({
+  filter,
+  viewsCount = 100,
+  likesCount = 50
+}: {
+  filter: "daily" | "weekly" | "monthly" | "yearly";
+  viewsCount?: number;
+  likesCount?: number;
+}) {
+  const dataMap = useMemo(() => {
+    const dailyBase = {
       labels: ["12am", "4am", "8am", "12pm", "4pm", "8pm"],
       views: [30, 20, 12, 35, 95, 130, 105, 140, 180, 150, 80, 45],
       likes: [5, 3, 2, 8, 28, 35, 29, 38, 55, 42, 18, 10]
-    },
-    weekly: {
+    };
+    const weeklyBase = {
       labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
       views: [450, 520, 610, 480, 590, 720, 680],
       likes: [120, 145, 190, 130, 175, 240, 210]
-    },
-    monthly: {
+    };
+    const monthlyBase = {
       labels: ["Week 1", "Week 2", "Week 3", "Week 4"],
       views: [1800, 2100, 2450, 2200],
       likes: [550, 680, 890, 710]
-    },
-    yearly: {
+    };
+    const yearlyBase = {
       labels: ["Jan", "Mar", "May", "Jul", "Sep", "Nov"],
       views: [5200, 6100, 7100, 8200, 9400, 11200],
       likes: [1800, 2300, 2900, 3400, 4100, 5100]
+    };
+
+    const scaleArray = (arr: number[], targetSum: number) => {
+      const currentSum = arr.reduce((a, b) => a + b, 0);
+      if (currentSum === 0) return arr.map(() => 0);
+      const factor = targetSum / currentSum;
+      return arr.map(v => Math.max(1, Math.round(v * factor)));
+    };
+
+    let targetViews = viewsCount;
+    let targetLikes = likesCount;
+
+    if (filter === "daily") {
+      targetViews = Math.round(viewsCount / 30) || 5;
+      targetLikes = Math.round(likesCount / 30) || 2;
+    } else if (filter === "weekly") {
+      targetViews = Math.round(viewsCount / 4.3) || 25;
+      targetLikes = Math.round(likesCount / 4.3) || 10;
+    } else if (filter === "yearly") {
+      targetViews = Math.round(viewsCount * 12) || 1200;
+      targetLikes = Math.round(likesCount * 12) || 500;
     }
-  };
+
+    return {
+      daily: {
+        labels: dailyBase.labels,
+        views: scaleArray(dailyBase.views, targetViews),
+        likes: scaleArray(dailyBase.likes, targetLikes)
+      },
+      weekly: {
+        labels: weeklyBase.labels,
+        views: scaleArray(weeklyBase.views, targetViews),
+        likes: scaleArray(weeklyBase.likes, targetLikes)
+      },
+      monthly: {
+        labels: monthlyBase.labels,
+        views: scaleArray(monthlyBase.views, targetViews),
+        likes: scaleArray(monthlyBase.likes, targetLikes)
+      },
+      yearly: {
+        labels: yearlyBase.labels,
+        views: scaleArray(yearlyBase.views, targetViews),
+        likes: scaleArray(yearlyBase.likes, targetLikes)
+      }
+    };
+  }, [filter, viewsCount, likesCount]);
 
   const current = dataMap[filter];
-  const maxViews = Math.max(...current.views) * 1.15;
-  const maxLikes = Math.max(...current.likes) * 1.15;
+  const maxViews = Math.max(...current.views) * 1.15 || 10;
+  const maxLikes = Math.max(...current.likes) * 1.15 || 5;
 
   const w = 500;
   const h = 180;
@@ -8384,50 +8640,95 @@ export default function App() {
           }}
         >
           <div style={{ minWidth: 0 }}>
-            {page === "Home" && (
-              <HomePage
-                posts={posts}
-                setPosts={setPosts}
-                setPage={setPage}
-                setSelectedCreator={setSelectedCreator}
-                currentUser={user}
-                search={search}
-                setSearch={setSearch}
-                wrapApi={wrapApi}
-                onLightbox={(url, type) => setLightbox({ url, type })}
-              />
-            )}
-            {page === "Explore" && (
-              <ExplorePage
-                setPage={setPage}
-                setSelectedCreator={setSelectedCreator}
-                search={search}
-                currentUser={user}
-                onUpdate={setUser}
-              />
-            )}
-            {page === "Messages" && (
-              <MessagesPage
-                activeConvoId={activeConvoId}
-                setActiveConvoId={setActiveConvoId}
-                incomingMsg={incomingMsg}
-                setIncomingMsg={setIncomingMsg}
-                currentUser={user}
-                wrapApi={wrapApi}
-              />
-            )}
-            {page === "Dashboard" && <DashboardPage />}
-            {page === "Profile" && (
-              <ProfilePage
-                creator={selectedCreator}
-                setPage={setPage}
-                setActiveConvoId={setActiveConvoId}
-                currentUser={user}
-                onUpdate={setUser}
-                wrapApi={wrapApi}
-                onLightbox={(url, type) => setLightbox({ url, type })}
-              />
-            )}
+            <AnimatePresence mode="wait">
+              {page === "Home" && (
+                <motion.div
+                  key="Home"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                >
+                  <HomePage
+                    posts={posts}
+                    setPosts={setPosts}
+                    setPage={setPage}
+                    setSelectedCreator={setSelectedCreator}
+                    currentUser={user}
+                    search={search}
+                    setSearch={setSearch}
+                    wrapApi={wrapApi}
+                    onLightbox={(url, type) => setLightbox({ url, type })}
+                  />
+                </motion.div>
+              )}
+              {page === "Explore" && (
+                <motion.div
+                  key="Explore"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                >
+                  <ExplorePage
+                    setPage={setPage}
+                    setSelectedCreator={setSelectedCreator}
+                    search={search}
+                    currentUser={user}
+                    onUpdate={setUser}
+                  />
+                </motion.div>
+              )}
+              {page === "Messages" && (
+                <motion.div
+                  key="Messages"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                >
+                  <MessagesPage
+                    activeConvoId={activeConvoId}
+                    setActiveConvoId={setActiveConvoId}
+                    incomingMsg={incomingMsg}
+                    setIncomingMsg={setIncomingMsg}
+                    currentUser={user}
+                    wrapApi={wrapApi}
+                    unreadConvos={unreadConvos}
+                  />
+                </motion.div>
+              )}
+              {page === "Dashboard" && (
+                <motion.div
+                  key="Dashboard"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                >
+                  <DashboardPage />
+                </motion.div>
+              )}
+              {page === "Profile" && (
+                <motion.div
+                  key="Profile"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                >
+                  <ProfilePage
+                    creator={selectedCreator}
+                    setPage={setPage}
+                    setActiveConvoId={setActiveConvoId}
+                    currentUser={user}
+                    onUpdate={setUser}
+                    wrapApi={wrapApi}
+                    onLightbox={(url, type) => setLightbox({ url, type })}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           {(page === "Home" || page === "Explore" || page === "Profile") && (
             <LateBreakingTicker

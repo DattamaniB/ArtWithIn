@@ -736,15 +736,33 @@ async function startServer() {
     });
   });
 
-  app.get('/api/posts', (req, res) => res.json(posts));
+  app.get('/api/posts', (req, res) => {
+    const populatedPosts = posts.map(p => {
+      const author = users.find(u => u._id === p.creatorId);
+      return {
+        ...p,
+        creatorType: author ? author.userType : 'creator'
+      };
+    });
+    res.json(populatedPosts);
+  });
   app.get('/api/posts/following', authenticate, (req: any, res) => {
     const user = users.find(u => u._id === req.user.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
     const followingIds = (user as any).following || [];
     const filteredPosts = posts.filter(p => followingIds.includes(p.creatorId));
-    res.json(filteredPosts);
+    const populatedPosts = filteredPosts.map(p => {
+      const author = users.find(u => u._id === p.creatorId);
+      return {
+        ...p,
+        creatorType: author ? author.userType : 'creator'
+      };
+    });
+    res.json(populatedPosts);
   });
   app.post('/api/posts', authenticate, (req: any, res) => {
+    const author = users.find(u => u._id === req.user.id);
+    const userType = author ? author.userType : "creator";
     const newPost = {
       _id: String(Date.now()),
       creatorId: req.user.id,
@@ -757,7 +775,8 @@ async function startServer() {
       time: "now",
       mediaUrl: req.body.mediaUrl,
       mediaType: req.body.mediaType,
-      commentsList: []
+      commentsList: [],
+      creatorType: userType
     };
     posts = [newPost, ...posts];
     saveDatabase();
